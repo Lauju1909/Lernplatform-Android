@@ -1234,6 +1234,11 @@ class VokabelApp {
 // Start app on DOMContentLoaded
 window.addEventListener("DOMContentLoaded", () => {
   window.app = new VokabelApp();
+  if (window.AndroidSyncBridge && window.AndroidSyncBridge.requestSync) {
+    setTimeout(() => {
+      try { window.AndroidSyncBridge.requestSync(); } catch (e) {}
+    }, 150);
+  }
 });
 
 // Automatic cross-app sync from BFW Vokabel-Verwaltung
@@ -1243,8 +1248,11 @@ window.onExternalTopicsSynced = function(jsonStr) {
     if (!Array.isArray(topics) || !window.app) return;
 
     let addedCount = 0;
+    let lastCat = "";
+
     topics.forEach(t => {
       const cat = `BFW: ${t.title}`;
+      lastCat = cat;
       (t.words || []).forEach(w => {
         const exists = window.app.vokabeln.some(v => 
           v.front.toLowerCase() === w.front.toLowerCase() && v.kategorie === cat
@@ -1260,7 +1268,19 @@ window.onExternalTopicsSynced = function(jsonStr) {
       window.app.saveData();
       window.app.renderVocabTable();
       window.app.updateCategoryDropdowns();
-      window.app.announce(`${addedCount} neue Vokabeln aus BFW Vokabel-Verwaltung synchronisiert.`);
+      const msg = `🎉 ${addedCount} neue Vokabeln aus BFW Vokabel-Verwaltung synchronisiert!`;
+      window.app.announce(msg);
+
+      let toast = document.getElementById("sync-live-toast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "sync-live-toast";
+        toast.style.cssText = "position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: #5c6bc0; color: #fff; padding: 12px 20px; border-radius: 25px; font-weight: bold; z-index: 999999; box-shadow: 0 4px 15px rgba(0,0,0,0.4); text-align: center; max-width: 90%;";
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.display = "block";
+      setTimeout(() => { if (toast) toast.style.display = "none"; }, 5000);
     }
   } catch (err) {
     console.warn("Sync error in VokabelMeister:", err);
