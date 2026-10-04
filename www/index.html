@@ -10,6 +10,7 @@
   <!-- Libraries for DOCX and Excel parsing -->
   <script src="xlsx.full.min.js"></script>
   <script src="mammoth.browser.min.js"></script>
+  <script src="bfw_catalog.js"></script>
 </head>
 <body>
   <!-- Screenreader Live Announcer für NVDA & Android TalkBack -->
@@ -358,6 +359,17 @@
                 <span>🗑️ Alle Daten löschen & Standard laden</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        <!-- BFW Wirtschaftsenglisch Themen-Bibliothek -->
+        <div class="card" style="margin-top: 24px;" id="bfw-meister-library">
+          <div>
+            <h3>🌐 BFW Wirtschaftsenglisch (Themen-Bibliothek BFW 1 &amp; BFW 2)</h3>
+            <p class="section-desc">Lade prüfungsrelevante Themen nach Schulthemen sortiert herunter oder lösche sie wieder:</p>
+          </div>
+          <div class="kategorien-grid" id="bfw-meister-topics-container" style="margin-top: 16px;">
+            <!-- Dynamisch durch renderBFWTopics() befüllt -->
           </div>
         </div>
       </section>
