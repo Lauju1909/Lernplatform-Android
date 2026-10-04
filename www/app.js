@@ -378,7 +378,6 @@ class VokabelApp {
     this.renderKategorien();
     this.updateCategoryDropdowns();
     this.renderVocabTable();
-    this.renderBFWTopics();
     this.nextCard();
   }
 
@@ -718,8 +717,6 @@ class VokabelApp {
           setTimeout(() => document.getElementById("answer-input").focus(), 100);
         } else if (panelId === "tab-vokabeln") {
           this.renderVocabTable();
-        } else if (panelId === "tab-import" || panelId === "tab-kategorien") {
-          this.renderBFWTopics();
         }
       });
     });
@@ -1048,93 +1045,7 @@ class VokabelApp {
       }
 
       list.appendChild(card);
-  }
-
-  renderBFWTopics() {
-    const container = document.getElementById("bfw-meister-topics-container");
-    if (!container) return;
-    const catalog = window.BFW_CATALOG || [];
-    container.innerHTML = "";
-
-    catalog.forEach(topic => {
-      const catName = `BFW: ${topic.title}`;
-      const topicVocabs = this.vokabeln.filter(v => v.kategorie === catName);
-      const isDownloaded = topicVocabs.length > 0;
-
-      const card = document.createElement("div");
-      card.className = "kat-card";
-      card.innerHTML = `
-        <div class="kat-header">
-          <span class="kat-icon" aria-hidden="true">${topic.icon}</span>
-          <span class="kat-title">${topic.title}</span>
-          <span class="kat-count">${isDownloaded ? `${topicVocabs.length} aktiv` : `${topic.count} Vokabeln`}</span>
-        </div>
-        <div class="kat-desc">${topic.level}: ${topic.subtitle}. ${topic.desc}</div>
-        <div class="kat-actions" style="margin-top: 10px;">
-          ${!isDownloaded ? `
-            <button type="button" class="btn btn-primary btn-small btn-dl-topic" style="flex: 1;">
-              <span>📥 Thema herunterladen</span>
-            </button>
-          ` : `
-            <button type="button" class="btn btn-secondary btn-small btn-train-topic" style="flex: 1;">
-              <span>🎯 Üben</span>
-            </button>
-            <button type="button" class="btn btn-danger btn-small btn-del-topic" title="Thema löschen">
-              <span>🗑️</span>
-            </button>
-          `}
-        </div>
-      `;
-
-      if (!isDownloaded) {
-        card.querySelector(".btn-dl-topic").addEventListener("click", () => {
-          if (!this.kategorien[catName]) {
-            this.kategorien[catName] = {
-              icon: topic.icon,
-              beschreibung: `${topic.level}: ${topic.subtitle}`,
-              frage_front: "Wie lautet die Übersetzung von:",
-              frage_back: "In welcher Sprache heißt der Begriff:",
-              lbl_front: "Englisch",
-              lbl_back: "Deutsch"
-            };
-          }
-          topic.words.forEach(w => {
-            const exists = this.vokabeln.some(v => v.front.toLowerCase() === w.front.toLowerCase() && v.kategorie === catName);
-            if (!exists) {
-              this.vokabeln.push(new Vokabel(w.front, w.back, catName, "Englisch", "Deutsch"));
-            }
-          });
-          this.saveData();
-          this.updateCategoryDropdowns();
-          this.renderKategorien();
-          this.renderVocabTable();
-          this.renderBFWTopics();
-          this.announce(`Thema ${topic.title} wurde heruntergeladen.`);
-        });
-      } else {
-        card.querySelector(".btn-train-topic").addEventListener("click", () => {
-          const sel = document.getElementById("quick-cat-select");
-          if (sel) sel.value = catName;
-          document.getElementById("btn-tab-train").click();
-          this.nextCard();
-        });
-
-        card.querySelector(".btn-del-topic").addEventListener("click", () => {
-          if (confirm(`Thema '${topic.title}' und alle zugehörigen Vokabeln löschen?`)) {
-            this.vokabeln = this.vokabeln.filter(v => v.kategorie !== catName);
-            delete this.kategorien[catName];
-            this.saveData();
-            this.updateCategoryDropdowns();
-            this.renderKategorien();
-            this.renderVocabTable();
-            this.renderBFWTopics();
-            this.announce(`Thema ${topic.title} wurde gelöscht.`);
-          }
-        });
-      }
-
-      container.appendChild(card);
-    });
+    }
   }
 
   renderVocabTable() {
