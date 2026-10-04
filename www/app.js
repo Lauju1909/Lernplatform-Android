@@ -1278,7 +1278,7 @@ class VokabelApp {
   splitLine(line) {
     const l = line.trim();
     if (!l || l.startsWith("#")) return null;
-    const seps = ["|", "\t", ";", "–", "—", " - ", "-"];
+    const seps = ["|", "\t", ";", " = ", ": ", "–", "—", " - ", "-"];
     for (const sep of seps) {
       if (l.includes(sep)) {
         const parts = l.split(sep);
