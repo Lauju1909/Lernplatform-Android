@@ -1,6 +1,6 @@
 {
   "name": "lernplatform_android",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Lernplatform - Barrierefreier Schriftlicher Vokabel- und Begriffstrainer für Android",
   "main": "index.js",
   "scripts": {
