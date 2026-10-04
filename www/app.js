@@ -1235,3 +1235,34 @@ class VokabelApp {
 window.addEventListener("DOMContentLoaded", () => {
   window.app = new VokabelApp();
 });
+
+// Automatic cross-app sync from BFW Vokabel-Verwaltung
+window.onExternalTopicsSynced = function(jsonStr) {
+  try {
+    const topics = JSON.parse(jsonStr);
+    if (!Array.isArray(topics) || !window.app) return;
+
+    let addedCount = 0;
+    topics.forEach(t => {
+      const cat = `BFW: ${t.title}`;
+      (t.words || []).forEach(w => {
+        const exists = window.app.vokabeln.some(v => 
+          v.front.toLowerCase() === w.front.toLowerCase() && v.kategorie === cat
+        );
+        if (!exists) {
+          window.app.vokabeln.push(new Vokabel(w.front, w.back, cat, "Englisch", "Deutsch", 0, 0));
+          addedCount++;
+        }
+      });
+    });
+
+    if (addedCount > 0) {
+      window.app.saveData();
+      window.app.renderVocabTable();
+      window.app.updateCategoryDropdowns();
+      window.app.announce(`${addedCount} neue Vokabeln aus BFW Vokabel-Verwaltung synchronisiert.`);
+    }
+  } catch (err) {
+    console.warn("Sync error in VokabelMeister:", err);
+  }
+};
