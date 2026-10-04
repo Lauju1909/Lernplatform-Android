@@ -390,6 +390,18 @@ class VokabelApp {
   }
 
   speak(text, lang) {
+    if (!text) return;
+    if (window.AndroidSyncBridge && typeof window.AndroidSyncBridge.speak === "function") {
+      try {
+        if (typeof window.AndroidSyncBridge.interruptTalkBack === "function") {
+          window.AndroidSyncBridge.interruptTalkBack();
+        }
+        window.AndroidSyncBridge.speak(text, lang || "en");
+        return;
+      } catch (e) {
+        console.warn("Android native TTS bridge failed, falling back to Web Speech:", e);
+      }
+    }
     if (!("speechSynthesis" in window)) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -408,6 +420,25 @@ class VokabelApp {
       utterance.lang = "de-DE";
     }
     window.speechSynthesis.speak(utterance);
+  }
+
+  async translateWord(text, fromLang = "en", toLang = "de") {
+    if (!text || !text.trim()) return "";
+    try {
+      const pair = `${fromLang}|${toLang}`;
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=${pair}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data && data.responseData && data.responseData.translatedText) {
+        const trans = data.responseData.translatedText;
+        if (!trans.toUpperCase().startsWith("MYMEMORY WARNING")) {
+          return trans;
+        }
+      }
+    } catch (e) {
+      console.warn("Translation failed:", e);
+    }
+    return "";
   }
 
   loadSettings() {
@@ -847,6 +878,35 @@ class VokabelApp {
     document.getElementById("btn-cancel-add-vocab").addEventListener("click", () => {
       document.getElementById("add-vocab-box").style.display = "none";
     });
+
+    const btnAutoTrans = document.getElementById("btn-auto-translate");
+    if (btnAutoTrans) {
+      btnAutoTrans.addEventListener("click", async () => {
+        const frontText = document.getElementById("vocab-input-front")?.value || "";
+        const langFront = document.getElementById("vocab-input-lang-front")?.value || "Englisch";
+        const langBack = document.getElementById("vocab-input-lang-back")?.value || "Deutsch";
+        if (!frontText.trim()) {
+          this.announce("Bitte zuerst einen Begriff eingeben!");
+          return;
+        }
+        btnAutoTrans.disabled = true;
+        btnAutoTrans.textContent = "Übersetze …";
+        const fromCode = langFront.toLowerCase().startsWith("de") ? "de" : "en";
+        const toCode = langBack.toLowerCase().startsWith("en") ? "en" : "de";
+        const result = await this.translateWord(frontText, fromCode, toCode);
+        btnAutoTrans.disabled = false;
+        btnAutoTrans.innerHTML = "<span>🌐 Automatisch übersetzen</span>";
+        if (result) {
+          const backInput = document.getElementById("vocab-input-back");
+          if (backInput) {
+            backInput.value = result;
+            this.announce(`Übersetzung gefunden: ${result}`);
+          }
+        } else {
+          this.announce("Keine Übersetzung gefunden.");
+        }
+      });
+    }
 
     document.getElementById("form-add-vocab").addEventListener("submit", (e) => {
       e.preventDefault();

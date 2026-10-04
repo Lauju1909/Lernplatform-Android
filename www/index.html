@@ -258,7 +258,12 @@
               <input type="text" id="vocab-input-lang-back" value="Deutsch" list="standard-sprachen">
             </div>
             <div class="form-group full-width">
-              <label for="vocab-input-back">Bedeutung / Lösung (Rückseite) *</label>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <label for="vocab-input-back" style="margin-bottom: 0;">Bedeutung / Lösung (Rückseite) *</label>
+                <button type="button" id="btn-auto-translate" class="btn btn-secondary" style="font-size: 0.85rem; padding: 4px 10px;" title="Online übersetzen mit MyMemory (Word-Bridge)">
+                  <span>🌐 Automatisch übersetzen</span>
+                </button>
+              </div>
               <input type="text" id="vocab-input-back" required placeholder="z. B. Hilfe, Unterstützung">
               <small class="field-hint">Tipp: Synonyme können durch Komma getrennt oder in Klammern (optional) gesetzt werden.</small>
             </div>

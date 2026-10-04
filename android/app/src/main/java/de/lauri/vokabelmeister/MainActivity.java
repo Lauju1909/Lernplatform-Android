@@ -4,16 +4,24 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
+import android.view.accessibility.AccessibilityManager;
 import android.webkit.JavascriptInterface;
 import com.getcapacitor.BridgeActivity;
 import org.json.JSONObject;
+import java.util.Locale;
 
-public class MainActivity extends BridgeActivity {
+public class MainActivity extends BridgeActivity implements TextToSpeech.OnInitListener {
     private static final String TAG = "VokabelMeisterSync";
+    private TextToSpeech tts;
+    private boolean ttsReady = false;
 
     private final BroadcastReceiver syncReceiver = new BroadcastReceiver() {
         @Override
@@ -27,6 +35,12 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        try {
+            tts = new TextToSpeech(this, this);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to initialize TextToSpeech", e);
+        }
+
         IntentFilter filter = new IntentFilter("de.lauri.vokabel.SYNC");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(syncReceiver, filter, Context.RECEIVER_EXPORTED);
@@ -34,12 +48,97 @@ public class MainActivity extends BridgeActivity {
             registerReceiver(syncReceiver, filter);
         }
 
+        registerJsBridge();
+    }
+
+    @Override
+    public void onInit(int status) {
+        if (status == TextToSpeech.SUCCESS) {
+            ttsReady = true;
+            if (tts != null) {
+                tts.setLanguage(Locale.US);
+            }
+            Log.d(TAG, "TextToSpeech initialized successfully");
+        } else {
+            Log.e(TAG, "TextToSpeech init failed: " + status);
+        }
+    }
+
+    private void registerJsBridge() {
         if (bridge != null && bridge.getWebView() != null) {
             bridge.getWebView().addJavascriptInterface(new Object() {
                 @JavascriptInterface
                 public void requestSync() {
                     Log.d(TAG, "requestSync called from JS");
                     syncFromVocabHub();
+                }
+
+                @JavascriptInterface
+                public void interruptTalkBack() {
+                    try {
+                        AccessibilityManager am = (AccessibilityManager) getSystemService(Context.ACCESSIBILITY_SERVICE);
+                        if (am != null) {
+                            am.interrupt();
+                            Log.d(TAG, "TalkBack interrupted successfully via AccessibilityManager.interrupt()");
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "interruptTalkBack failed", e);
+                    }
+                }
+
+                @JavascriptInterface
+                public void speak(String text, String lang) {
+                    if (tts == null || !ttsReady || text == null || text.trim().isEmpty()) {
+                        return;
+                    }
+                    try {
+                        // 1. TalkBack sofort unterbrechen / stummschalten
+                        interruptTalkBack();
+
+                        // 2. Audio-Fokus anfordern für saubere Sprachausgabe
+                        try {
+                            AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                            if (am != null) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                    AudioFocusRequest afr = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                                        .setAudioAttributes(new AudioAttributes.Builder()
+                                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                            .build())
+                                        .build();
+                                    am.requestAudioFocus(afr);
+                                } else {
+                                    am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+                                }
+                            }
+                        } catch (Exception ignored) {}
+
+                        Locale loc = Locale.US;
+                        if (lang != null) {
+                            String l = lang.toLowerCase();
+                            if (l.startsWith("de")) loc = Locale.GERMAN;
+                            else if (l.contains("gb") || l.contains("uk")) loc = Locale.UK;
+                            else if (l.startsWith("es")) loc = new Locale("es", "ES");
+                            else if (l.startsWith("fr")) loc = Locale.FRENCH;
+                            else if (l.startsWith("it")) loc = Locale.ITALIAN;
+                        }
+                        tts.setLanguage(loc);
+                        tts.setSpeechRate(1.0f);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "tts_" + System.currentTimeMillis());
+                        } else {
+                            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null);
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "speak error", e);
+                    }
+                }
+
+                @JavascriptInterface
+                public void stopSpeech() {
+                    if (tts != null) {
+                        tts.stop();
+                    }
                 }
             }, "AndroidSyncBridge");
         }
@@ -48,6 +147,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        registerJsBridge();
         syncFromVocabHub();
     }
 
@@ -57,6 +157,12 @@ public class MainActivity extends BridgeActivity {
         try {
             unregisterReceiver(syncReceiver);
         } catch (Exception ignored) {}
+        if (tts != null) {
+            try {
+                tts.stop();
+                tts.shutdown();
+            } catch (Exception ignored) {}
+        }
     }
 
     public void syncFromVocabHub() {
