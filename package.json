@@ -1,6 +1,6 @@
 {
   "name": "vokabelmeister_android",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "VokabelMeister - Barrierefreier Schriftlicher Vokabeltrainer für Android",
   "main": "index.js",
   "scripts": {
