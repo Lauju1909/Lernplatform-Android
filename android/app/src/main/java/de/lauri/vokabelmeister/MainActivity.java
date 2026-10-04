@@ -19,7 +19,7 @@ import org.json.JSONObject;
 import java.util.Locale;
 
 public class MainActivity extends BridgeActivity implements TextToSpeech.OnInitListener {
-    private static final String TAG = "VokabelMeisterSync";
+    private static final String TAG = "LernplatformSync";
     private TextToSpeech tts;
     private boolean ttsReady = false;
 

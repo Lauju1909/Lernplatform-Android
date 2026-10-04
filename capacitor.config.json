@@ -1,6 +1,6 @@
 {
   "appId": "de.lauri.vokabelmeister",
-  "appName": "VokabelMeister",
+  "appName": "Lernplatform",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

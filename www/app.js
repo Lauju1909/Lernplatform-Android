@@ -1,5 +1,5 @@
 /**
- * app.js – VokabelMeister Barrierefreier Schriftlicher Vokabeltrainer
+ * app.js – Lernplatform Barrierefreier Schriftlicher Vokabeltrainer
  * Exakte Portierung des Python-Backends (Damerau-Levenshtein, Klammer-/Slash-Expansion,
  * gewichteter Lernalgorithmus, TalkBack-Barrierefreiheit & Speech-Synthese).
  */
@@ -443,7 +443,7 @@ class VokabelApp {
 
   loadSettings() {
     try {
-      const saved = localStorage.getItem("vokabelmeister_settings");
+      const saved = localStorage.getItem("lernplatform_settings");
       if (saved) {
         this.settings = { ...this.settings, ...JSON.parse(saved) };
       }
@@ -454,7 +454,7 @@ class VokabelApp {
 
   saveSettings() {
     try {
-      localStorage.setItem("vokabelmeister_settings", JSON.stringify(this.settings));
+      localStorage.setItem("lernplatform_settings", JSON.stringify(this.settings));
     } catch (e) {
       console.warn("Could not save settings:", e);
     }
@@ -487,7 +487,7 @@ class VokabelApp {
   async loadData() {
     // 1. Kategorien
     try {
-      const savedKats = localStorage.getItem("vokabelmeister_kategorien");
+      const savedKats = localStorage.getItem("lernplatform_kategorien");
       if (savedKats) {
         this.kategorien = { ...DEFAULT_KATEGORIEN, ...JSON.parse(savedKats) };
       }
@@ -497,7 +497,7 @@ class VokabelApp {
 
     // 2. Vokabeln
     try {
-      const savedVocabs = localStorage.getItem("vokabelmeister_vokabeln");
+      const savedVocabs = localStorage.getItem("lernplatform_vokabeln");
       if (savedVocabs) {
         const raw = JSON.parse(savedVocabs);
         if (Array.isArray(raw) && raw.length > 0) {
@@ -537,14 +537,14 @@ class VokabelApp {
 
   saveData() {
     try {
-      localStorage.setItem("vokabelmeister_vokabeln", JSON.stringify(this.vokabeln));
+      localStorage.setItem("lernplatform_vokabeln", JSON.stringify(this.vokabeln));
       const customKats = {};
       for (const [k, v] of Object.entries(this.kategorien)) {
         if (!DEFAULT_KATEGORIEN[k]) {
           customKats[k] = v;
         }
       }
-      localStorage.setItem("vokabelmeister_kategorien", JSON.stringify(customKats));
+      localStorage.setItem("lernplatform_kategorien", JSON.stringify(customKats));
     } catch (e) {
       console.error("Save error:", e);
     }
@@ -994,7 +994,7 @@ class VokabelApp {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.vokabeln, null, 2));
       const a = document.createElement("a");
       a.href = dataStr;
-      a.download = `VokabelMeister_Export_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `Lernplatform_Export_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
     });
 
@@ -1003,7 +1003,7 @@ class VokabelApp {
       const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(lines.join("\n"));
       const a = document.createElement("a");
       a.href = dataStr;
-      a.download = `VokabelMeister_Liste_${new Date().toISOString().slice(0, 10)}.txt`;
+      a.download = `Lernplatform_Liste_${new Date().toISOString().slice(0, 10)}.txt`;
       a.click();
     });
 
@@ -1023,8 +1023,8 @@ class VokabelApp {
 
     document.getElementById("btn-reset-all").addEventListener("click", () => {
       if (confirm("WARNUNG: Dadurch werden alle Vokabeln gelöscht und der Standard wiederhergestellt. Fortfahren?")) {
-        localStorage.removeItem("vokabelmeister_vokabeln");
-        localStorage.removeItem("vokabelmeister_kategorien");
+        localStorage.removeItem("lernplatform_vokabeln");
+        localStorage.removeItem("lernplatform_kategorien");
         location.reload();
       }
     });
@@ -1343,6 +1343,6 @@ window.onExternalTopicsSynced = function(jsonStr) {
       setTimeout(() => { if (toast) toast.style.display = "none"; }, 5000);
     }
   } catch (err) {
-    console.warn("Sync error in VokabelMeister:", err);
+    console.warn("Sync error in Lernplatform:", err);
   }
 };
