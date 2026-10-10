@@ -1,13 +1,10 @@
-# Agent Guidelines for VokabelMeister Android
+# 🤖 Hinweise für KI-Agenten (AI Agents Guide)
 
-## Critical Security Rule
-- **NEVER** commit keystores (`release.keystore`, `*.jks`, `*.p12`) or passwords to Git.
-- `release.keystore` must remain strictly local and excluded via `.gitignore`.
-- Gradle uses `if (file('release.keystore').exists())` fallback.
+## ⚡ Automatisiertes Build-, Auto-Versioning- und Release-System
+- **Automatische Versionserhöhung:** `versionCode` und `versionName` in `android/app/build.gradle` sowie `package.json` werden bei jedem Push auf den Branch `main` **vollautomatisch durch GitHub Actions erhöht** (z. B. `versionCode + 1`, `1.2.4` -> `1.2.5`).
+- **Automatischer APK-Build & Release:** GitHub Actions baut automatisch `assembleDebug` und `assembleRelease`, erstellt das GitHub Release und hängt die APKs an.
+- **Automatischer F-Droid Sync:** GitHub Actions stößt nach dem Release vollautomatisch das Repository `Lauju1909/fdroid-repo` an.
 
-## Build Requirements
-- Node.js >= 22 (Capacitor 8.5 requirement).
-- Java 21 LTS (`temurin`).
-- Sync assets using `npx cap sync android`.
-- Build APKs with `./gradlew assembleDebug assembleRelease`.
-- Tagging `v*` triggers release workflow and automated F-Droid repository updates via `PAT_TRIGGER`.
+## 📌 Was KI-Agenten beachten MÜSSEN:
+1. **Keine manuellen Releases oder Versionsnummern-Änderungen erzwingen:** Features und Bugfixes normal committen. Nach dem Push auf `main` übernimmt GitHub Actions das Hochzählen des Version-Codes, das Taggen und das Veröffentlichen des Releases vollautomatisch.
+2. **Barrierefreiheit (TalkBack):** Alle Komponenten müssen 100% barrierefrei bleiben.
