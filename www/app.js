@@ -346,6 +346,125 @@ class Vokabel {
 }
 
 // ── State & Storage Manager ──────────────────────────────────────────────────
+function triggerAccessibleFeedback(type = 'tap') {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    const patterns = {
+      tap: [15],
+      success: [30, 50, 30],
+      warning: [40, 60, 40],
+      error: [80, 50, 80],
+      boundary: [25, 25, 25]
+    };
+    try { navigator.vibrate(patterns[type] || [15]); } catch (_) {}
+  }
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    if (!window.__sharedAudioCtx) window.__sharedAudioCtx = new AudioContext();
+    const ctx = window.__sharedAudioCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
+    
+    if (type === 'success') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } else if (type === 'error') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.setValueAtTime(164.81, now + 0.09);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === 'warning') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.setValueAtTime(392, now + 0.07);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } else if (type === 'boundary') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(330, now);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      osc.start(now);
+      osc.stop(now + 0.09);
+    } else { // tap
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      osc.start(now);
+      osc.stop(now + 0.04);
+    }
+  } catch (_) {}
+}
+
+class AriaLiveQueue {
+  constructor(elementId = "sr-announcer") {
+    this.elementId = elementId;
+    this.queue = [];
+    this.isProcessing = false;
+    this.timer = null;
+  }
+
+  announce(message, priority = "polite") {
+    if (!message) return;
+    const cleanMsg = String(message).trim();
+    if (!cleanMsg) return;
+
+    if (priority === "assertive") {
+      if (this.timer) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+      this.queue.unshift({ message: cleanMsg, priority: "assertive" });
+      this.isProcessing = false;
+      this.processNext();
+    } else {
+      this.queue.push({ message: cleanMsg, priority: "polite" });
+      if (!this.isProcessing) {
+        this.processNext();
+      }
+    }
+  }
+
+  processNext() {
+    if (this.queue.length === 0) {
+      this.isProcessing = false;
+      return;
+    }
+
+    this.isProcessing = true;
+    const item = this.queue.shift();
+    const liveEl = document.getElementById(this.elementId);
+
+    if (liveEl) {
+      liveEl.textContent = "";
+      setTimeout(() => {
+        liveEl.textContent = item.message;
+        const readDuration = Math.max(1200, item.message.length * 65);
+        this.timer = setTimeout(() => {
+          this.processNext();
+        }, readDuration);
+      }, 50);
+    } else {
+      this.processNext();
+    }
+  }
+}
+
 class VokabelApp {
   constructor() {
     this.kategorien = { ...DEFAULT_KATEGORIEN };
@@ -382,11 +501,10 @@ class VokabelApp {
   }
 
   announce(msg) {
-    const el = document.getElementById("sr-announcer");
-    if (el) {
-      el.textContent = "";
-      setTimeout(() => { el.textContent = msg; }, 50);
+    if (!this._ariaQueue) {
+      this._ariaQueue = new AriaLiveQueue("sr-announcer");
     }
+    this._ariaQueue.announce(msg);
   }
 
   speak(text, lang) {
